@@ -36,7 +36,7 @@ mycl <- cutree(rowclusters, h=max(rowclusters$height/1.5))
   
   png(filename="Cluster_silhouette.png", units="in",width=3, height=3 , pointsize=5, res=1200)
   par(font.axis = 2,font.lab=2, font=2)
-  fviz_nbclust(as.matrix(protien_ratios3d_mat[,2:11]), FUN = cluster_fun, diss=distmat,method = "silhouette")
+  fviz_nbclust(as.matrix(protien_ratios3d_mat[,2:11]), FUN = cluster_fun,method = "silhouette")
   dev.off()
   
   png(filename="Cluster_wss.png", units="in",width=3, height=3 , pointsize=5, res=1200)
@@ -54,7 +54,7 @@ mycl <- cutree(rowclusters, h=max(rowclusters$height/1.5))
   
   }
 
-clusterCols <- c("blue","forestgreen")
+clusterCols <- c("forestgreen","blue")
 dend1 <- as.dendrogram(rowclusters)
 dend1 <- color_branches(dend1, k = 2, col = clusterCols)
 col_labels <- get_leaves_branches_col(dend1)
@@ -85,41 +85,41 @@ dev.off()
 data_heat_cl<-as.data.frame((t(data_heat$carpet)))
 data_heat_cl$Label<-row.names(data_heat_cl)
 mycl<-as.data.frame(mycl)
-mycl$Label<-row.names(mycl)
+mycl$Label<-rownames(mycl)
+colnames(mycl)[1]<-"Cluster"
 comb<-merge(data_heat_cl,mycl,by="Label")
 comb<-merge(comb,protien_ratios3d[,c(2,13)],by="Label")
 comb$Cor.RPL<-log2(comb$Cor.RPL)
 
-central<-subset(comb, comb$mycl==1)
-perpheral<-subset(comb, comb$mycl==2)
+central<-subset(comb, comb$Cluster==1)
+perpheral<-subset(comb, comb$Cluster==2)
 centralmean<-colMeans(x=central[,2:11], na.rm = TRUE)
 perpheralmean<-colMeans(x=perpheral[,2:11], na.rm = TRUE)
 centralsd<-apply(central[,2:11],2,sd)
 perpheralsd<-apply(perpheral[,2:11],2,sd)
-central_CI<-1.96*(centralsd/nrow(central))
-perpheral_CI<-1.96*(perpheralsd/nrow(perpheral))
-
 
 #plot the clusterwise intesity change
-png(filename="clusterwise_intensity_change.png", units="in",width=2, height=2 , pointsize=7, res=1200)
+png(filename="clusterwise_intensity_change_SD.png", units="in",width=2, height=2 , pointsize=7, res=1200)
 par(font.axis = 2,font.lab=2,mar=c(4,4,1,1), font=2)
-plot(centralmean, col=clusterCols[2], type="o",pch=19,las=1,xaxt = "n",xlab="Radial Distance",main="",ylab="DNA Intensity", ylim=c(0,1))
-polygon(c(1:10,10:1),c((centralmean+centralsd),rev(centralmean-centralsd)), col=alpha.col(col = clusterCols[2], alpha = 0.2), border= NA)
-points(perpheralmean,col=clusterCols[1],type="o",pch=18)
-polygon(c(1:10,10:1),c((perpheralmean+perpheralsd),rev(perpheralmean-perpheralsd)), col=alpha.col(col = clusterCols[1], alpha = 0.2), border= NA)
+plot(centralmean, col=clusterCols[1], type="o",pch=19,las=1,xaxt = "n",xlab="Radial Distance",main="",ylab="DNA Intensity", ylim=c(0,1))
+polygon(c(1:10,10:1),c((centralmean+centralsd),rev(centralmean-centralsd)), col=alpha.col(col = clusterCols[1], alpha = 0.2), border= NA)
+points(perpheralmean,col=clusterCols[2],type="o",pch=18)
+polygon(c(1:10,10:1),c((perpheralmean+perpheralsd),rev(perpheralmean-perpheralsd)), col=alpha.col(col = clusterCols[2], alpha = 0.2), border= NA)
 axis(1, at=1:10, labels=c("0-10%","10-20%","20-30%","30-40%","40-50%","50-60%","60-70%","70-80%","80-90%","90-100%"),las=2,cex.axis=0.7)
 dev.off()
+
 
 #plot the log foldchange of Cor/RPL in the two clusters
 png(filename="clusterwise_protein_change.png", units="in",width=2, height=2 , pointsize=7, res=1200)
 par(font.axis = 2,font.lab=2,mar=c(4,4,1,1), font=2)
 d1<-density(central$Cor.RPL)
 d2<-density(perpheral$Cor.RPL)
-plot(d1, col=clusterCols[2], type="l",las=1,xlab="Log2 (Coro1A/RPL10A)",main="",ylab="Probability Density", ylim=c(0,2.5), lwd=2)
-lines(d2,col=clusterCols[1], lwd=2)
+plot(d1, col=clusterCols[1], type="l",las=1,xlab="Log2 (Coro1A/RPL10A)",main="",ylab="Probability Density", ylim=c(0,2.5), lwd=2)
+lines(d2,col=clusterCols[2], lwd=2)
 dev.off()
 
 t.test(2^(central$Cor.RPL),2^(perpheral$Cor.RPL),alternative = "two.sided", var.equal = FALSE)
 
+write.csv(comb,file="central_peripheral_clusters.csv")
 
 
