@@ -1,7 +1,7 @@
 # Radial_chromatin_packing_immune_cells
 Images were processed and further analyzed using custom programs in Fiji and R. 
 
-Image Analyis
+### Image Analyis
 The nuclear boundaries were segmented in 3D using the DAPI channels to identify individual nuclei. This is accomplished in *_Binary.ijm_* and *_3dcrop.ijm_*. 
 
 These nuclei were eroded by 0.5 microns in x,y, and z iteratively till the volume of the eroded nucleus was less than 10 cubic microns. Then the mean intensity of each 3D ring (width 0.5 microns) in the nucleus was computed for all cells. This is accomplished in *_obtain3D_shells.ijm_*. 
@@ -11,5 +11,5 @@ In order to calculate the cellular levels of proteins, the 3D nuclear object was
 
 To visualize the images, zprojected montages of segemented nulei is visualized using *_zproject_and_padd_montage.ijm_* and *_Rescale_images.ijm_*
 
-Cluster Identification
+### Cluster Identification
 Hierarchical clustering was performed on the dissimilarity matrix obtained from (1-spearman’s correlation) from the radial DNA intensity profile data. R libraries used: gplots, RColorBrewer and dendextend. 
