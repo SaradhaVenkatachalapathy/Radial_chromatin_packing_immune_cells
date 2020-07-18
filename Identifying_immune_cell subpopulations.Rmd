@@ -1,0 +1,133 @@
+---
+title: "Immune cell clusters"
+output:
+  html_document:
+    df_print: paged
+---
+
+##Identifying the clusters in spatial chromatin organization
+```{r reading datasets, include=FALSE}
+library(gplots)
+library(RColorBrewer)
+library(dendextend)
+library(plot3D)  
+library(factoextra)  
+library(cluster)  
+
+
+dird<-"/Users/saradhavenkatachalapathy/Desktop/immunecells/new_run/"
+dir.create(dird)
+setwd(dird)
+
+#read in the data
+protien_ratios3d<- read.csv("~/Desktop/immunecells/comb.csv")
+protien_ratios3d<-protien_ratios3d[,-13]
+rownames(protien_ratios3d)<-protien_ratios3d$Label
+
+#Set color libraries
+rbPal <- colorRampPalette(c('red','white','black'))#colors for the protein ratio
+Colors=gray.colors(15, start = 0.9, end = 0.3)# colors for the heatmap
+
+
+#Color code the foldchange
+protien_ratios3d_mat<-na.omit(protien_ratios3d[,c(13,3:12)])
+protien_ratios3d_mat[,1]<-log2(protien_ratios3d_mat[,1])
+protien_ratios3d_mat<-protien_ratios3d_mat[order(protien_ratios3d_mat[,1]),]
+protien_ratios3d_mat$cols <- rbPal(10)[as.numeric(cut(protien_ratios3d_mat[,1],breaks = 10))]
+
+```
+
+1. Selecting number of clusters
+```{r selecting number of clusters}
+
+  cluster_fun <- function(x, k) list(cluster = cutree(hclust(as.dist(1-cor(t(x), method="spearman")), method="complete"), k = k))
+  
+  fviz_nbclust(as.matrix(protien_ratios3d_mat[,2:11]), FUN = cluster_fun,method = "silhouette")
+
+  fviz_nbclust(as.matrix(protien_ratios3d_mat[,2:11]), FUN = cluster_fun, method = "wss")
+  
+  gap_stat <- clusGap(as.matrix(protien_ratios3d_mat[,2:11]), FUN  = cluster_fun, K.max = 10, B = 50,verbose = F)
+  fviz_gap_stat(gap_stat,maxSE = list(method = "globalmax",maxSE=0.5))
+
+
+
+
+
+
+```
+
+2. Obtain and Visualising the clusters
+```{r Visualising clusters, echo=TRUE}
+#Obtain the clusters
+distmat<-as.dist(1-cor(t(protien_ratios3d_mat[,2:11]), method="spearman"))
+rowclusters = hclust(distmat, method="complete")
+mycl <- cutree(rowclusters, h=max(rowclusters$height/1.3))
+clusterCols <- c("forestgreen","blue")
+dend1 <- as.dendrogram(rowclusters)
+dend1 <- color_branches(dend1, k = 2, col = clusterCols)
+col_labels <- get_leaves_branches_col(dend1)
+col_labels <- col_labels[order(order.dendrogram(dend1))]
+
+data_heat<-heatmap.2(as.matrix(protien_ratios3d_mat[,2:11]),scale="none",Rowv = dend1, Colv=FALSE, dendrogram = "row", 
+                     density.info = "none",trace="none",col=Colors,labRow = NA, key.xlab="Intensity Fraction" ,keysize =1.5,key.title=" ",
+                     srtCol = 45,margins=c(4,2),
+                     labCol =c("0-10%","10-20%","20-30%","30-40%","40-50%","50-60%","60-70%","70-80%","80-90%","90-100%"))
+
+#Obtain the clusters and merge the protien ratio values
+data_heat_cl<-as.data.frame((t(data_heat$carpet)))
+data_heat_cl$Label<-row.names(data_heat_cl)
+mycl<-as.data.frame(mycl)
+mycl$Label<-rownames(mycl)
+colnames(mycl)[1]<-"Cluster"
+comb<-merge(data_heat_cl,mycl,by="Label")
+comb<-merge(comb,protien_ratios3d[,c(2,13)],by="Label")
+comb$Cor.RPL<-log2(comb$Cor.RPL)
+
+```
+3. Two clusters correspond to two different modes of chromatin packing: central and peripheral
+```{r echo=TRUE}
+
+central<-subset(comb, comb$Cluster==1)
+perpheral<-subset(comb, comb$Cluster==2)
+centralmean<-colMeans(x=central[,2:11], na.rm = TRUE)
+perpheralmean<-colMeans(x=perpheral[,2:11], na.rm = TRUE)
+centralsd<-apply(central[,2:11],2,sd)
+perpheralsd<-apply(perpheral[,2:11],2,sd)
+
+#plot the clusterwise intesity change
+plot(centralmean, col=clusterCols[1], type="o",pch=19,las=1,xaxt = "n",xlab="Radial Distance",main="",ylab="DNA Intensity", ylim=c(0,1))
+polygon(c(1:10,10:1),c((centralmean+centralsd),rev(centralmean-centralsd)), col=alpha.col(col = clusterCols[1], alpha = 0.2), border= NA)
+points(perpheralmean,col=clusterCols[2],type="o",pch=19)
+polygon(c(1:10,10:1),c((perpheralmean+perpheralsd),rev(perpheralmean-perpheralsd)), col=alpha.col(col = clusterCols[2], alpha = 0.2), border= NA)
+axis(1, at=1:10, labels=c("0-10%","10-20%","20-30%","30-40%","40-50%","50-60%","60-70%","70-80%","80-90%","90-100%"),las=2,cex.axis=0.7)
+legend("bottomleft",lty=1,lwd=2,
+       col=clusterCols, 
+       legend = c("Central Chromatin", "Peripheral Chromatin"),cex=0.9,bty = "n"
+)
+
+
+```
+
+4. Two clusters correspond to two different modes of chromatin packing: central and peripheral
+
+```{r}
+#plot the log foldchange of Cor/RPL in the two clusters
+d1<-density(central$Cor.RPL)
+d2<-density(perpheral$Cor.RPL)
+plot(d1, col=clusterCols[1], type="l",las=1,xlab="Log2 (Coro1A/RPL10A)",main="",ylab="Probability Density", ylim=c(0,2.5), lwd=2)
+lines(d2,col=clusterCols[2], lwd=2)
+legend("topleft",lty=1,lwd=2,
+  col=clusterCols, 
+  legend = c("Central Chromatin", "Peripheral Chromatin"),cex=0.9,bty = "n"
+)
+
+#statistical test
+t.test(2^(central$Cor.RPL),2^(perpheral$Cor.RPL),alternative = "two.sided", var.equal = FALSE)
+
+```
+
+
+```{r}
+sessionInfo()
+```
+
