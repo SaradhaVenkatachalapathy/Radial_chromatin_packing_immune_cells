@@ -29,7 +29,7 @@ protien_ratios3d_mat$cols <- rbPal(10)[as.numeric(cut(protien_ratios3d_mat[,1],b
 #Obtain the clusters
 distmat<-as.dist(1-cor(t(protien_ratios3d_mat[,2:11]), method="spearman"))
 rowclusters = hclust(distmat, method="complete")
-mycl <- cutree(rowclusters, h=max(rowclusters$height/1.5))
+mycl <- cutree(rowclusters, h=max(rowclusters$height/1.3))
 
 {
   cluster_fun <- function(x, k) list(cluster = cutree(hclust(as.dist(1-cor(t(x), method="spearman")), method="complete"), k = k))
@@ -103,9 +103,13 @@ png(filename="clusterwise_intensity_change_SD.png", units="in",width=2, height=2
 par(font.axis = 2,font.lab=2,mar=c(4,4,1,1), font=2)
 plot(centralmean, col=clusterCols[1], type="o",pch=19,las=1,xaxt = "n",xlab="Radial Distance",main="",ylab="DNA Intensity", ylim=c(0,1))
 polygon(c(1:10,10:1),c((centralmean+centralsd),rev(centralmean-centralsd)), col=alpha.col(col = clusterCols[1], alpha = 0.2), border= NA)
-points(perpheralmean,col=clusterCols[2],type="o",pch=18)
+points(perpheralmean,col=clusterCols[2],type="o",pch=19)
 polygon(c(1:10,10:1),c((perpheralmean+perpheralsd),rev(perpheralmean-perpheralsd)), col=alpha.col(col = clusterCols[2], alpha = 0.2), border= NA)
 axis(1, at=1:10, labels=c("0-10%","10-20%","20-30%","30-40%","40-50%","50-60%","60-70%","70-80%","80-90%","90-100%"),las=2,cex.axis=0.7)
+legend("bottomleft",lty=1,lwd=2,
+       col=clusterCols, 
+       legend = c("Central Chromatin", "Peripheral Chromatin"),cex=0.9,bty = "n"
+)
 dev.off()
 
 
@@ -116,6 +120,10 @@ d1<-density(central$Cor.RPL)
 d2<-density(perpheral$Cor.RPL)
 plot(d1, col=clusterCols[1], type="l",las=1,xlab="Log2 (Coro1A/RPL10A)",main="",ylab="Probability Density", ylim=c(0,2.5), lwd=2)
 lines(d2,col=clusterCols[2], lwd=2)
+legend("topleft",lty=1,lwd=2,
+  col=clusterCols, 
+  legend = c("Central Chromatin", "Peripheral Chromatin"),cex=0.9,bty = "n"
+)
 dev.off()
 
 t.test(2^(central$Cor.RPL),2^(perpheral$Cor.RPL),alternative = "two.sided", var.equal = FALSE)
