@@ -13,3 +13,5 @@ To visualize the images, zprojected montages of segemented nulei is visualized u
 
 ### Cluster Identification
 Hierarchical clustering was performed on the dissimilarity matrix obtained from (1-spearman’s correlation) from the radial DNA intensity profile data. R libraries used: gplots, RColorBrewer and dendextend. 
+
+[![DOI](https://zenodo.org/badge/272499677.svg)](https://zenodo.org/badge/latestdoi/272499677)
